@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Suixin Yiyue SQLite backup daily
+
+[Timer]
+OnCalendar=*-*-* 03:20:00
+Persistent=true
+RandomizedDelaySec=10m
+Unit=suixin-yiyue-backup.service
+
+[Install]
+WantedBy=timers.target

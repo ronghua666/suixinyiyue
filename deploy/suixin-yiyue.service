@@ -1,0 +1,19 @@
+[Unit]
+Description=随心一阅 Cloud Server
+After=network.target
+
+[Service]
+Type=simple
+User=suixin
+Group=suixin
+WorkingDirectory=/opt/suixin-yiyue/backend
+Environment="CLOUD_MODE=true"
+EnvironmentFile=-/etc/suixin-yiyue.env
+ExecStart=/opt/suixin-yiyue/venv/bin/python -m uvicorn main:app --host 127.0.0.1 --port 8765
+Restart=always
+RestartSec=5
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

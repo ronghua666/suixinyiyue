@@ -1,0 +1,51 @@
+# Config (user-specific)
+config.json
+
+# Database files
+*.db
+
+# Logs
+logs/
+*.log
+
+# Diagnostics
+diagnostics/
+updates/
+
+# Local security
+local_token.txt
+*.secret
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.spec
+
+# Virtual environment
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Claude
+.claude/
+CLAUDE.md
+
+# Build artifacts
+*.exe
+*.msi
+dist/

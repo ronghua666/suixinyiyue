@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>随心一阅 — AI 自动阅卷辅助工具</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/app_icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════ LPT Design System v2 ═══════════════ */
+:root {
+  --l1-bg: #F5F7FB;
+  --l1-bg-alt: #EEF2F8;
+  --l1-text: #1A2332;
+  --l1-sub: #445569;
+  --l1-light: #5E6F82;
+
+  --l2-card-bg: rgba(255,255,255,0.72);
+  --l2-card-border: rgba(123,162,216,0.18);
+  --l2-dot: rgba(123,162,216,0.38);
+
+  --l3-static: #6E9AD4;
+  --l3-hover: #4DB5A5;
+  --l3-active: #7B76D6;
+  --l3-warn: #E0984A;
+  --l3-warn-border: rgba(224,152,74,0.28);
+
+  --ease-lpt: cubic-bezier(0.22, 0.01, 0.27, 1);
+  --radius-card: 20px;
+  --radius-btn: 30px;
+
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", sans-serif;
+}
+
+html.dark {
+  --l1-bg: #0C1320;
+  --l1-bg-alt: #111A2A;
+  --l1-text: #E4EAF3;
+  --l1-sub: #8B9BB5;
+  --l1-light: #5E6F82;
+  --l2-card-bg: rgba(18,26,42,0.78);
+  --l2-card-border: rgba(110,154,212,0.15);
+  --l2-dot: rgba(110,154,212,0.30);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0ms !important;
+    transition-duration: 0ms !important;
+  }
+}
+
+/* ═══════════════ Reset ═══════════════ */
+* { margin:0; padding:0; box-sizing:border-box; }
+html { font-size: 16px; scroll-behavior: smooth; }
+body {
+  font-family: var(--font);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--l1-text);
+  background: var(--l1-bg);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  transition: background 600ms var(--ease-lpt), color 600ms var(--ease-lpt);
+}
+:focus-visible { outline: 2px solid var(--l3-hover); outline-offset: 2px; border-radius: 2px; }
+:focus:not(:focus-visible) { outline: none; }
+
+/* ═══════════════ Canvas layers ═══════════════ */
+#lpt-canvas {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+}
+#lpt-canvas canvas { width: 100%; height: 100%; display: block; }
+#content-layer { position: relative; z-index: 10; }
+
+/* ═══════════════ Utilities ═══════════════ */
+.container { max-width: 1000px; margin: 0 auto; padding: 0 28px; }
+.section-py { padding: 80px 0; }
+.tac { text-align: center; }
+.mb-sm { margin-bottom: 10px; }
+.mb-md { margin-bottom: 36px; }
+.mx-auto { margin-left: auto; margin-right: auto; }
+.flex-ctr { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+.grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 22px; }
+.grid-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 22px; }
+
+/* ═══════════════ Hero ═══════════════ */
+.hero {
+  padding: 100px 0 70px;
+  text-align: center;
+  position: relative;
+}
+.hero-icon {
+  width: 96px; height: 96px;
+  border-radius: 22px;
+  display: block;
+  margin: 0 auto 28px;
+  border: 1.5px solid var(--l2-card-border);
+  box-shadow: 0 20px 60px rgba(110,154,212,0.15), 0 4px 16px rgba(110,154,212,0.08);
+  transition: border-color 300ms var(--ease-lpt), box-shadow 300ms var(--ease-lpt);
+  position: relative;
+}
+.hero-icon:hover {
+  border-color: rgba(77,181,165,0.45);
+  box-shadow: 0 24px 72px rgba(77,181,165,0.22), 0 4px 20px rgba(77,181,165,0.12);
+}
+.hero h1 {
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  margin-bottom: 14px;
+  color: var(--l1-text);
+}
+.hero .lead {
+  font-size: 20px;
+  color: var(--l1-sub);
+  font-weight: 400;
+  max-width: 560px;
+  margin: 0 auto 36px;
+  line-height: 1.55;
+}
+
+/* ═══════════════ Particle Card ═══════════════ */
+.pcard {
+  position: relative;
+  background: var(--l2-card-bg);
+  border-radius: var(--radius-card);
+  padding: 28px 24px;
+  border: 1.5px solid var(--l2-card-border);
+  box-shadow: 0 2px 12px rgba(110,154,212,0.06);
+  transition:
+    border-color 280ms var(--ease-lpt),
+    box-shadow 280ms var(--ease-lpt),
+    transform 240ms var(--ease-lpt);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+/* Visible particle dots on card border */
+.pcard::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: calc(var(--radius-card) + 2px);
+  pointer-events: none;
+  background:
+    /* corners — larger, visible dots */
+    radial-gradient(3.5px circle at 10px 10px, var(--l2-dot) 50%, transparent 62%),
+    radial-gradient(3.5px circle at calc(100% - 10px) 10px, var(--l2-dot) 50%, transparent 62%),
+    radial-gradient(3.5px circle at 10px calc(100% - 10px), var(--l2-dot) 50%, transparent 62%),
+    radial-gradient(3.5px circle at calc(100% - 10px) calc(100% - 10px), var(--l2-dot) 50%, transparent 62%),
+    /* edge mid-points */
+    radial-gradient(2.5px circle at 50% 4px, var(--l2-dot) 45%, transparent 58%),
+    radial-gradient(2.5px circle at 50% calc(100% - 4px), var(--l2-dot) 45%, transparent 58%),
+    radial-gradient(2.5px circle at 4px 50%, var(--l2-dot) 45%, transparent 58%),
+    radial-gradient(2.5px circle at calc(100% - 4px) 50%, var(--l2-dot) 45%, transparent 58%);
+  transition: background 280ms var(--ease-lpt);
+}
+.pcard:hover {
+  border-color: rgba(77,181,165,0.35);
+  box-shadow: 0 8px 32px rgba(77,181,165,0.10);
+  transform: translateY(-2px);
+}
+.pcard:hover::before {
+  background:
+    radial-gradient(4px circle at 10px 10px, rgba(77,181,165,0.48) 50%, transparent 62%),
+    radial-gradient(4px circle at calc(100% - 10px) 10px, rgba(77,181,165,0.48) 50%, transparent 62%),
+    radial-gradient(4px circle at 10px calc(100% - 10px), rgba(77,181,165,0.48) 50%, transparent 62%),
+    radial-gradient(4px circle at calc(100% - 10px) calc(100% - 10px), rgba(77,181,165,0.48) 50%, transparent 62%),
+    radial-gradient(3px circle at 50% 4px, rgba(77,181,165,0.40) 45%, transparent 58%),
+    radial-gradient(3px circle at 50% calc(100% - 4px), rgba(77,181,165,0.40) 45%, transparent 58%),
+    radial-gradient(3px circle at 4px 50%, rgba(77,181,165,0.40) 45%, transparent 58%),
+    radial-gradient(3px circle at calc(100% - 4px) 50%, rgba(77,181,165,0.40) 45%, transparent 58%);
+}
+
+/* Feature card */
+.pcard-feat { text-align: center; padding: 32px 22px; }
+.pcard-feat .picon-svg {
+  width: 52px; height: 52px;
+  margin: 0 auto 16px;
+  display: block;
+  color: var(--l3-static);
+  transition: color 280ms var(--ease-lpt), filter 280ms var(--ease-lpt);
+  filter: drop-shadow(0 0 10px rgba(110,154,212,0.22));
+}
+.pcard-feat:hover .picon-svg {
+  color: var(--l3-hover);
+  filter: drop-shadow(0 0 18px rgba(77,181,165,0.40));
+}
+.pcard-feat h3 { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+.pcard-feat p { font-size: 13.5px; color: var(--l1-sub); font-weight: 300; line-height: 1.5; }
+
+/* ═══════════════ Particle Button ═══════════════ */
+.pbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 15px 36px;
+  border-radius: var(--radius-btn);
+  font-size: 16px;
+  font-weight: 600;
+  font-family: var(--font);
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  position: relative;
+  color: #fff;
+  background: var(--l3-static);
+  box-shadow: 0 6px 28px rgba(110,154,212,0.28);
+  transition:
+    background 280ms var(--ease-lpt),
+    box-shadow 280ms var(--ease-lpt),
+    transform 240ms var(--ease-lpt);
+  user-select: none;
+}
+/* Orbiting particle dots */
+.pbtn::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: calc(var(--radius-btn) + 8px);
+  pointer-events: none;
+  background:
+    radial-gradient(2.5px circle at 16% 8%, rgba(110,154,212,0.36) 50%, transparent 62%),
+    radial-gradient(2.5px circle at 50% 2%, rgba(110,154,212,0.30) 50%, transparent 62%),
+    radial-gradient(2.5px circle at 84% 8%, rgba(110,154,212,0.36) 50%, transparent 62%),
+    radial-gradient(2.5px circle at 94% 50%, rgba(110,154,212,0.26) 50%, transparent 62%),
+    radial-gradient(2.5px circle at 84% 92%, rgba(110,154,212,0.34) 50%, transparent 62%),
+    radial-gradient(2.5px circle at 50% 98%, rgba(110,154,212,0.28) 50%, transparent 62%),
+    radial-gradient(2.5px circle at 16% 92%, rgba(110,154,212,0.34) 50%, transparent 62%),
+    radial-gradient(2.5px circle at 6% 50%, rgba(110,154,212,0.26) 50%, transparent 62%);
+  transition: background 280ms var(--ease-lpt);
+}
+.pbtn:hover {
+  background: var(--l3-hover);
+  box-shadow: 0 8px 36px rgba(77,181,165,0.36);
+  transform: translateY(-3px);
+}
+.pbtn:hover::before {
+  background:
+    radial-gradient(3px circle at 16% 8%, rgba(77,181,165,0.48) 50%, transparent 62%),
+    radial-gradient(3px circle at 50% 2%, rgba(77,181,165,0.40) 50%, transparent 62%),
+    radial-gradient(3px circle at 84% 8%, rgba(77,181,165,0.48) 50%, transparent 62%),
+    radial-gradient(3px circle at 94% 50%, rgba(77,181,165,0.36) 50%, transparent 62%),
+    radial-gradient(3px circle at 84% 92%, rgba(77,181,165,0.44) 50%, transparent 62%),
+    radial-gradient(3px circle at 50% 98%, rgba(77,181,165,0.38) 50%, transparent 62%),
+    radial-gradient(3px circle at 16% 92%, rgba(77,181,165,0.44) 50%, transparent 62%),
+    radial-gradient(3px circle at 6% 50%, rgba(77,181,165,0.36) 50%, transparent 62%);
+}
+.pbtn:active {
+  background: var(--l3-active);
+  box-shadow: 0 3px 16px rgba(123,118,214,0.36);
+  transform: scale(0.96);
+  transition: all 180ms var(--ease-lpt);
+}
+
+.pbtn-outline {
+  background: rgba(110,154,212,0.07);
+  color: var(--l3-static);
+  box-shadow: 0 4px 16px rgba(110,154,212,0.10);
+}
+.pbtn-outline::before {
+  background:
+    radial-gradient(2.5px circle at 16% 8%, rgba(110,154,212,0.40) 50%, transparent 62%),
+    radial-gradient(2.5px circle at 50% 2%, rgba(110,154,212,0.32) 50%, transparent 62%),
+    radial-gradient(2.5px circle at 84% 8%, rgba(110,154,212,0.40) 50%, transparent 62%),
+    radial-gradient(2.5px circle at 94% 50%, rgba(110,154,212,0.28) 50%, transparent 62%),
+    radial-gradient(2.5px circle at 84% 92%, rgba(110,154,212,0.36) 50%, transparent 62%),
+    radial-gradient(2.5px circle at 50% 98%, rgba(110,154,212,0.30) 50%, transparent 62%),
+    radial-gradient(2.5px circle at 16% 92%, rgba(110,154,212,0.36) 50%, transparent 62%),
+    radial-gradient(2.5px circle at 6% 50%, rgba(110,154,212,0.28) 50%, transparent 62%);
+}
+.pbtn-outline:hover {
+  background: rgba(77,181,165,0.12);
+  color: #fff;
+  box-shadow: 0 6px 24px rgba(77,181,165,0.20);
+}
+
+.pbtn-sm {
+  padding: 7px 18px;
+  border-radius: 22px;
+  font-size: 13px;
+  font-weight: 500;
+  background: rgba(110,154,212,0.06);
+  color: var(--l1-sub);
+  box-shadow: 0 1px 6px rgba(110,154,212,0.06);
+}
+.pbtn-sm::before { display: none; }
+.pbtn-sm:hover {
+  background: rgba(77,181,165,0.10);
+  color: var(--l3-hover);
+  box-shadow: 0 2px 12px rgba(77,181,165,0.12);
+}
+
+/* ═══════════════ Step number ═══════════════ */
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--l3-static);
+  background: rgba(110,154,212,0.10);
+  border: 1.5px solid rgba(110,154,212,0.22);
+  box-shadow: 0 3px 12px rgba(110,154,212,0.10);
+  margin-bottom: 14px;
+  transition: color 280ms var(--ease-lpt), border-color 280ms var(--ease-lpt), box-shadow 280ms var(--ease-lpt);
+}
+.pcard-feat:hover .step-num {
+  color: var(--l3-hover);
+  border-color: rgba(77,181,165,0.40);
+  box-shadow: 0 4px 18px rgba(77,181,165,0.18);
+}
+
+/* ═══════════════ Download box ═══════════════ */
+.pdownload {
+  background: var(--l2-card-bg);
+  border-radius: var(--radius-card);
+  padding: 40px;
+  text-align: center;
+  max-width: 540px;
+  margin: 0 auto;
+  position: relative;
+  border: 1.5px solid var(--l2-card-border);
+  box-shadow: 0 16px 56px rgba(110,154,212,0.10);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: border-color 280ms var(--ease-lpt), box-shadow 280ms var(--ease-lpt);
+}
+.pdownload::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: calc(var(--radius-card) + 3px);
+  pointer-events: none;
+  background:
+    radial-gradient(4px circle at 8% 6%, rgba(110,154,212,0.35) 50%, transparent 62%),
+    radial-gradient(4px circle at 92% 5%, rgba(110,154,212,0.32) 50%, transparent 62%),
+    radial-gradient(4px circle at 6% 94%, rgba(110,154,212,0.33) 50%, transparent 62%),
+    radial-gradient(4px circle at 94% 95%, rgba(110,154,212,0.30) 50%, transparent 62%);
+  transition: background 280ms var(--ease-lpt);
+}
+.pdownload:hover {
+  border-color: rgba(77,181,165,0.40);
+  box-shadow: 0 20px 64px rgba(77,181,165,0.14);
+}
+.pdownload .ver { font-size: 26px; font-weight: 700; color: var(--l3-static); margin-bottom: 4px; }
+.pdownload .ver-label { font-size: 14px; color: var(--l1-sub); margin-bottom: 22px; }
+
+/* ═══════════════ Divider ═══════════════ */
+.pdivider {
+  height: 1px; border: none; background: none;
+  background-image:
+    radial-gradient(2.5px circle at 4px 50%, var(--l2-dot) 45%, transparent 58%),
+    radial-gradient(2.5px circle at 16px 50%, var(--l2-dot) 45%, transparent 58%),
+    radial-gradient(2.5px circle at 28px 50%, var(--l2-dot) 45%, transparent 58%),
+    radial-gradient(2.5px circle at 40px 50%, var(--l2-dot) 45%, transparent 58%);
+  background-size: 44px 1px;
+  background-repeat: repeat-x;
+  margin: 22px 0;
+}
+
+/* ═══════════════ Notice ═══════════════ */
+.pnotice {
+  background: rgba(224,152,74,0.06);
+  border-radius: 14px;
+  padding: 18px 22px;
+  font-size: 13.5px;
+  color: #C07A2E;
+  font-weight: 400;
+  border: 1.5px solid var(--l3-warn-border);
+  box-shadow: 0 2px 10px rgba(224,152,74,0.06);
+  line-height: 1.55;
+}
+
+/* ═══════════════ Footer ═══════════════ */
+.pfooter {
+  text-align: center;
+  padding: 44px 0;
+  color: var(--l1-light);
+  font-size: 12px;
+  font-weight: 300;
+  background-image:
+    radial-gradient(2.5px circle at 6px 0, var(--l2-dot) 45%, transparent 60%),
+    radial-gradient(2.5px circle at 20px 0, var(--l2-dot) 45%, transparent 60%);
+  background-size: 26px 1px;
+  background-repeat: repeat-x;
+  background-position: top;
+  margin-top: 40px;
+}
+.pfooter p { margin-bottom: 3px; }
+
+/* ═══════════════ Theme toggle ═══════════════ */
+#theme-toggle {
+  position: fixed;
+  top: 22px; right: 22px;
+  z-index: 200;
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  border: 1.5px solid var(--l2-card-border);
+  cursor: pointer;
+  background: var(--l2-card-bg);
+  box-shadow: 0 2px 12px rgba(110,154,212,0.08);
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: border-color 280ms var(--ease-lpt), box-shadow 280ms var(--ease-lpt);
+}
+#theme-toggle:hover {
+  border-color: rgba(77,181,165,0.45);
+  box-shadow: 0 4px 20px rgba(77,181,165,0.18);
+}
+
+/* ═══════════════ Section title ═══════════════ */
+.sec-title {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  text-align: center;
+  margin-bottom: 10px;
+}
+.sec-sub {
+  font-size: 17px;
+  color: var(--l1-sub);
+  font-weight: 400;
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+/* ═══════════════ FAQ card ═══════════════ */
+.faq-card { margin-bottom: 12px; }
+.faq-card h3 { font-size: 16px; font-weight: 600; }
+.faq-card p { font-size: 14px; color: var(--l1-sub); margin-top: 5px; font-weight: 300; line-height: 1.55; }
+
+/* ═══════════════ Scrollbar ═══════════════ */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: rgba(110,154,212,0.04); border-radius: 4px; }
+::-webkit-scrollbar-thumb {
+  background: rgba(110,154,212,0.25);
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgba(110,154,212,0.30), 0 0 8px rgba(110,154,212,0.10);
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(77,181,165,0.38); }
+
+/* ═══════════════ Dark mode dissolution ═══════════════ */
+html.mode-switching #content-layer { animation: dissolve-out 200ms var(--ease-lpt) forwards; }
+html.mode-switched #content-layer { animation: dissolve-in 300ms 200ms var(--ease-lpt) forwards; }
+@keyframes dissolve-out { to { opacity: 0.4; filter: blur(2px) saturate(0.4); } }
+@keyframes dissolve-in { from { opacity: 0.4; filter: blur(2px) saturate(0.4); } to { opacity: 1; filter: blur(0) saturate(1); } }
+
+/* ═══════════════ Mobile ═══════════════ */
+@media (max-width: 768px) {
+  .hero { padding: 60px 0 40px; }
+  .hero h1 { font-size: 32px; }
+  .hero .lead { font-size: 17px; }
+  .hero-icon { width: 76px; height: 76px; }
+  .sec-title { font-size: 24px; }
+  .sec-sub { font-size: 15px; margin-bottom: 28px; }
+  .section-py { padding: 48px 0; }
+  .container { padding: 0 18px; }
+  .pcard { padding: 22px 18px; }
+  .pcard-feat { padding: 24px 16px; }
+  .pbtn { padding: 12px 26px; font-size: 15px; }
+  .pdownload { padding: 28px 20px; }
+  .grid-4 { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; }
+  .grid-steps { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; }
+}
+@media (max-width: 480px) {
+  .hero { padding: 40px 0 30px; }
+  .hero h1 { font-size: 26px; }
+  .hero .lead { font-size: 15px; }
+  .hero-icon { width: 64px; height: 64px; border-radius: 16px; }
+  .sec-title { font-size: 21px; }
+  .sec-sub { font-size: 14px; }
+  .grid-4, .grid-steps { grid-template-columns: 1fr; gap: 12px; }
+  .pbtn { padding: 10px 20px; font-size: 14px; }
+  #theme-toggle { top: 10px; right: 10px; width: 38px; height: 38px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ SVG filters ═══ -->
+<svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+  <defs>
+    <filter id="pnoise" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" result="noise"/>
+      <feColorMatrix type="saturate" values="0" in="noise" result="gray"/>
+      <feComponentTransfer in="gray" result="alpha">
+        <feFuncA type="linear" slope="0.07"/>
+      </feComponentTransfer>
+      <feComposite in="SourceGraphic" in2="alpha" operator="in"/>
+    </filter>
+  </defs>
+</svg>
+
+<!-- ═══ Unified LPT canvas ═══ -->
+<div id="lpt-canvas" aria-hidden="true"><canvas id="lpt-c"></canvas></div>
+
+<!-- ═══ Theme toggle ═══ -->
+<button id="theme-toggle" aria-label="切换明暗模式" title="切换明暗模式">☀</button>
+
+<!-- ═══ Content ═══ -->
+<div id="content-layer">
+
+<!-- ══ Hero ══ -->
+<section class="hero">
+  <img src="/app_icon.png" alt="随心一阅" class="hero-icon"
+       onmouseover="this.style.borderColor='rgba(77,181,165,0.45)';this.style.boxShadow='0 24px 72px rgba(77,181,165,0.22)'"
+       onmouseout="this.style.borderColor='var(--l2-card-border)';this.style.boxShadow='0 20px 60px rgba(110,154,212,0.15)'">
+  <h1>随心一阅</h1>
+  <p class="lead">AI 驱动的阅卷辅助工具 — 截图、识别、评分、输入，全自动完成</p>
+  <div class="flex-ctr">
+    <a class="pbtn" href="#download">免费下载</a>
+    <a class="pbtn pbtn-outline" href="#tutorial">使用教程</a>
+  </div>
+</section>
+
+<!-- ══ Features ══ -->
+<section class="section-py">
+  <div class="container">
+    <h2 class="sec-title">为什么选择随心一阅？</h2>
+    <p class="sec-sub">专为教师和阅卷工作者设计，让 AI 替你完成重复劳动</p>
+    <div class="grid-4">
+      <div class="pcard pcard-feat">
+        <svg class="picon-svg" viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="6" y="12" width="36" height="26" rx="4" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 3"/><circle cx="24" cy="25" r="6" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 3"/><circle cx="20" cy="20" r="1.5" fill="currentColor" opacity="0.6"/></svg>
+        <h3>智能识别答题区</h3>
+        <p>框选屏幕区域，AI 自动分析题目数量和每空分值，无需手动测量坐标。</p>
+      </div>
+      <div class="pcard pcard-feat">
+        <svg class="picon-svg" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="24" r="16" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 4"/><circle cx="24" cy="24" r="8" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 3"/><circle cx="24" cy="24" r="2.5" fill="currentColor" opacity="0.7"/></svg>
+        <h3>逐题精准评分</h3>
+        <p>每道题独立配置标准答案和评分细则，AI 按空评分，不遗漏、不敷衍。</p>
+      </div>
+      <div class="pcard pcard-feat">
+        <svg class="picon-svg" viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M26 6L14 28h8l-4 14 18-22h-8l6-14z" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 3" stroke-linejoin="round"/><circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.4"/><circle cx="38" cy="36" r="2" fill="currentColor" opacity="0.4"/></svg>
+        <h3>连续自动批改</h3>
+        <p>一份接一份，自动检测翻页，你只需要坐在旁边喝咖啡。</p>
+      </div>
+      <div class="pcard pcard-feat">
+        <svg class="picon-svg" viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M24 4L6 12v16c0 10 7.7 19.4 18 20 10.3-.6 18-10 18-20V12L24 4z" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 4" stroke-linejoin="round"/><circle cx="24" cy="24" r="5" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 2"/><circle cx="24" cy="24" r="1.5" fill="currentColor" opacity="0.7"/></svg>
+        <h3>完全离线</h3>
+        <p>API 密钥本地存储，无需注册、无需联网。下载即用，你的密钥你做主。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ Download ══ -->
+<section id="download" class="section-py">
+  <div class="container">
+    <h2 class="sec-title">下载随心一阅</h2>
+    <p class="sec-sub">支持 Windows 8 / 10 / 11 · 32位（x86）</p>
+    <div class="pdownload">
+      <div class="ver" id="detectedOs">Windows 10</div>
+      <div class="ver-label">当前版本 v2.0.0 · 约 28MB · 无需注册，下载即用</div>
+      <a class="pbtn" id="btnDownload" href="/downloads/suixinyiyue-v1.exe">下载安装包</a>
+      <div class="pdivider"></div>
+      <div class="flex-ctr" style="margin-top:10px">
+        <a class="pbtn pbtn-sm" href="/downloads/suixinyiyue-v1.exe">Win 8</a>
+        <a class="pbtn pbtn-sm" href="/downloads/suixinyiyue-v1.exe">Win 10</a>
+        <a class="pbtn pbtn-sm" href="/downloads/suixinyiyue-v1.exe">Win 11</a>
+      </div>
+    </div>
+    <div class="pnotice mx-auto" style="margin-top:22px;max-width:540px">
+      安装后即可使用，无需注册、无需登录。进入「系统设置」配置你的 AI API 密钥，然后框选区域、分析题目、配置答案，即可开始批改。
+    </div>
+  </div>
+</section>
+
+<!-- ══ Tutorial ══ -->
+<section id="tutorial" class="section-py">
+  <div class="container">
+    <h2 class="sec-title">四步开始批改</h2>
+    <p class="sec-sub">第一次使用？跟着走一遍就能上手</p>
+    <div class="grid-steps">
+      <div class="pcard pcard-feat">
+        <div class="step-num">1</div>
+        <h3>框选区域</h3>
+        <p>在阅卷系统中打开一份试卷，点击框选按钮，用鼠标拖拽标记答题区、成绩栏和提交按钮的位置。</p>
+      </div>
+      <div class="pcard pcard-feat">
+        <div class="step-num">2</div>
+        <h3>分析题目</h3>
+        <p>点击「分析题目」，AI 自动截取答题区，识别每道题的空数和描述，生成逐题配置卡片。</p>
+      </div>
+      <div class="pcard pcard-feat">
+        <div class="step-num">3</div>
+        <h3>配置答案 &amp; 细则</h3>
+        <p>填写每空的标准答案、满分和评分细则。细则越清晰，AI 评分越准确。</p>
+      </div>
+      <div class="pcard pcard-feat">
+        <div class="step-num">4</div>
+        <h3>开始批改</h3>
+        <p>点击「试改」先跑一份看效果，确认无误后点「连续批改」自动处理整叠试卷。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FAQ ══ -->
+<section class="section-py">
+  <div class="container">
+    <h2 class="sec-title">常见问题</h2>
+    <p class="sec-sub">你可能想问的</p>
+    <div class="pcard faq-card">
+      <h3>支持哪些阅卷系统？</h3>
+      <p>只要是在浏览器或 Windows 窗口中显示的阅卷界面，理论上都支持。随心一阅通过屏幕截图 + 模拟点击来工作，不依赖任何特定平台的 API。</p>
+    </div>
+    <div class="pcard faq-card">
+      <h3>AI 评分的准确率怎么样？</h3>
+      <p>取决于评分细则的清晰程度和你使用的 AI 模型。细则写得越明确、越可量化，AI 越能准确执行。建议先用「试改」功能验证效果。</p>
+    </div>
+    <div class="pcard faq-card">
+      <h3>收费标准是什么？</h3>
+      <p>软件本身完全免费。AI 调用的 token 消耗由你自己的 API 密钥承担，直接向 AI 服务商（火山引擎等）付费。软件不收取任何中间费用。</p>
+    </div>
+    <div class="pcard faq-card">
+      <h3>软件会获取我的阅卷平台账号密码吗？</h3>
+      <p>不会。软件只截取屏幕上你框选的区域，不会读取键盘输入、浏览器数据或任何其他程序的隐私信息。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ Community ══ -->
+<section class="section-py">
+  <div class="container tac">
+    <h2 class="sec-title">开源与社区</h2>
+    <p class="sec-sub">随心一阅的源代码即将在 GitHub 开放，欢迎关注</p>
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
+      <a class="pbtn pbtn-outline" href="https://github.com/PLACEHOLDER_USER/PLACEHOLDER_REPO" target="_blank" rel="noopener">GitHub 项目主页</a>
+      <a class="pbtn pbtn-outline" href="https://space.bilibili.com/PLACEHOLDER" target="_blank" rel="noopener">B站视频教程</a>
+    </div>
+    <p style="color:var(--l1-light);font-size:13px;margin-top:14px">项目链接将在正式开源后更新，敬请期待。</p>
+  </div>
+</section>
+
+<!-- ══ Footer ══ -->
+<div class="pfooter">
+  <p>本软件只能辅助阅卷，并不能替代人。所有批阅结果仅供参考，可能有误。</p>
+  <p>请确保您的使用行为符合所使用阅卷平台的服务条款。</p>
+  <p style="margin-top:12px">&copy; 2026 随心一阅 · <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">ICP备XXXXXXXXXX号</a></p>
+</div>
+
+</div><!-- /content-layer -->
+
+<script>
+/* ═══════════════ LPT Unified Particle Engine v2 ═══════════════ */
+(function() {
+  var c = document.getElementById('lpt-c');
+  var ctx = c.getContext('2d');
+  var W, H, dpr;
+  var grainImg = null;
+  var particles = [];
+  var ambientParticles = [];
+  var mouseX = -200, mouseY = -200;
+  var mouseTimer = 0;
+  var rafId = null;
+  var isDark = false;
+  var MAX_P = 160;
+  var AMBIENT_COUNT = 35;
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    c.width = Math.floor(W * dpr);
+    c.height = Math.floor(H * dpr);
+    c.style.width = W + 'px';
+    c.style.height = H + 'px';
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
+    buildGrain();
+    initAmbient();
+  }
+
+  /* ── Grain ── */
+  function buildGrain() {
+    var sw = Math.ceil(W / 6), sh = Math.ceil(H / 6);
+    var off = document.createElement('canvas');
+    off.width = sw; off.height = sh;
+    var oc = off.getContext('2d');
+    var img = oc.createImageData(sw, sh);
+    var d = img.data;
+    for (var i = 0; i < d.length; i += 4) {
+      var v = 125 + Math.random() * 16;
+      d[i] = d[i+1] = d[i+2] = v;
+      d[i+3] = 4 + Math.random() * 4;
+    }
+    oc.putImageData(img, 0, 0);
+    grainImg = off;
+  }
+
+  /* ── Ambient particles (always visible) ── */
+  function initAmbient() {
+    ambientParticles = [];
+    for (var i = 0; i < AMBIENT_COUNT; i++) {
+      ambientParticles.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        vx: (Math.random() - 0.5) * 0.35,
+        vy: (Math.random() - 0.5) * 0.35,
+        size: 1 + Math.random() * 2.5,
+        alpha: 0.08 + Math.random() * 0.14,
+        pulse: Math.random() * Math.PI * 2,
+        pulseSpeed: 0.003 + Math.random() * 0.008
+      });
+    }
+  }
+
+  function updateAmbient() {
+    for (var i = 0; i < ambientParticles.length; i++) {
+      var a = ambientParticles[i];
+      a.x += a.vx;
+      a.y += a.vy;
+      a.pulse += a.pulseSpeed;
+      /* Wrap around */
+      if (a.x < -20) a.x = W + 20;
+      if (a.x > W + 20) a.x = -20;
+      if (a.y < -20) a.y = H + 20;
+      if (a.y > H + 20) a.y = -20;
+    }
+  }
+
+  function drawAmbient() {
+    for (var i = 0; i < ambientParticles.length; i++) {
+      var a = ambientParticles[i];
+      var alpha = a.alpha * (0.7 + 0.3 * Math.sin(a.pulse));
+      ctx.beginPath();
+      ctx.arc(a.x, a.y, a.size, 0, Math.PI * 2);
+      ctx.fillStyle = isDark
+        ? 'hsla(210, 40%, 65%, ' + alpha + ')'
+        : 'hsla(212, 50%, 55%, ' + alpha + ')';
+      ctx.fill();
+    }
+  }
+
+  /* ── Interaction particles ── */
+  function spawn(x, y, opts) {
+    opts = opts || {};
+    var angle = Math.random() * Math.PI * 2;
+    var speed = opts.burst ? 1.8 + Math.random() * 4 : 0.25 + Math.random() * 1.2;
+    particles.push({
+      x: x, y: y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 1,
+      decay: opts.decay || (0.007 + Math.random() * 0.02),
+      size: opts.size || (1.5 + Math.random() * 3),
+      hue: isDark ? 205 : 212,
+      sat: 40 + Math.random() * 35,
+      light: isDark ? 58 + Math.random() * 20 : 60 + Math.random() * 20
+    });
+    if (particles.length > MAX_P) particles.shift();
+  }
+
+  function spawnBurst(x, y) {
+    for (var i = 0; i < 12; i++) {
+      spawn(x, y, { burst: true, decay: 0.01 + Math.random() * 0.035, size: 2 + Math.random() * 6 });
+    }
+  }
+
+  function updateParticles() {
+    for (var i = particles.length - 1; i >= 0; i--) {
+      var p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= p.decay;
+      p.vy += 0.006;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  /* ── Draw ── */
+  function drawParticles() {
+    for (var i = 0; i < particles.length; i++) {
+      var p = particles[i];
+      var alpha = p.life * 0.5;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fillStyle = 'hsla(' + p.hue + ',' + p.sat + '%,' + p.light + '%,' + alpha + ')';
+      ctx.fill();
+      if (p.size > 3) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * 2.2, 0, Math.PI * 2);
+        ctx.fillStyle = 'hsla(' + p.hue + ',' + p.sat + '%,' + p.light + '%,' + (alpha * 0.14) + ')';
+        ctx.fill();
+      }
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    /* L1: Grain */
+    if (grainImg) {
+      ctx.globalAlpha = isDark ? 0.12 : 0.14;
+      ctx.drawImage(grainImg, 0, 0, W, H);
+      ctx.globalAlpha = 1;
+    }
+
+    /* L3: Ambient particles (always visible) */
+    drawAmbient();
+
+    /* L3: Interaction particles */
+    drawParticles();
+  }
+
+  /* ── Loop with idle pause ── */
+  function loop() {
+    updateAmbient();
+    updateParticles();
+    draw();
+
+    if (particles.length === 0 && mouseTimer > 3000) {
+      rafId = null;
+      return;
+    }
+    mouseTimer += 16;
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function ensureLoop() {
+    mouseTimer = 0;
+    if (!rafId) rafId = requestAnimationFrame(loop);
+  }
+
+  /* ── Event listeners ── */
+  window.addEventListener('resize', resize);
+
+  document.addEventListener('mousemove', function(e) {
+    mouseX = e.clientX; mouseY = e.clientY;
+    mouseTimer = 0;
+    ensureLoop();
+    var el = document.elementFromPoint(mouseX, mouseY);
+    if (el && (el.closest('.pbtn') || el.closest('.pcard') || el.closest('.pinput'))) {
+      if (Math.random() < 0.4) spawn(mouseX, mouseY);
+    }
+  });
+
+  document.addEventListener('click', function(e) {
+    ensureLoop();
+    spawnBurst(e.clientX, e.clientY);
+  });
+
+  document.addEventListener('touchmove', function(e) {
+    var t = e.touches[0];
+    if (t) {
+      mouseX = t.clientX; mouseY = t.clientY;
+      mouseTimer = 0;
+      ensureLoop();
+      if (Math.random() < 0.55) spawn(mouseX, mouseY, { size: 2 + Math.random() * 3 });
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchstart', function(e) {
+    var t = e.touches[0];
+    if (t) { ensureLoop(); spawnBurst(t.clientX, t.clientY); }
+  }, { passive: true });
+
+  /* ── Text hover dispersion ── */
+  document.querySelectorAll('h1, h2, .lead, .sec-title, .sec-sub, .ver').forEach(function(el) {
+    el.addEventListener('mouseenter', function() {
+      ensureLoop();
+      var rect = el.getBoundingClientRect();
+      for (var i = 0; i < 16; i++) {
+        spawn(
+          rect.left + Math.random() * rect.width,
+          rect.top + Math.random() * rect.height,
+          { decay: 0.01 + Math.random() * 0.03, size: 1.5 + Math.random() * 3.5 }
+        );
+      }
+    });
+  });
+
+  /* ── Grain refresh ── */
+  setInterval(function() { buildGrain(); ensureLoop(); }, 5000);
+
+  /* ── Theme toggle ── */
+  var themeBtn = document.getElementById('theme-toggle');
+  var html = document.documentElement;
+  themeBtn.addEventListener('click', function() {
+    html.classList.add('mode-switching');
+    setTimeout(function() {
+      html.classList.remove('mode-switching');
+      html.classList.add('mode-switched');
+      if (html.classList.contains('dark')) {
+        html.classList.remove('dark'); html.classList.add('light');
+        themeBtn.innerHTML = '&#x2600;'; isDark = false;
+      } else {
+        html.classList.remove('light'); html.classList.add('dark');
+        themeBtn.innerHTML = '&#x1F319;'; isDark = true;
+      }
+      setTimeout(function() { html.classList.remove('mode-switched'); }, 500);
+      buildGrain(); initAmbient(); ensureLoop();
+    }, 200);
+  });
+
+  /* ── OS Detection ── */
+  (function() {
+    var ua = navigator.userAgent || '';
+    var plat = 'win10';
+    if (/Windows NT 10/.test(ua)) {
+      plat = (/Windows NT 10\.0\.2([2-9]|\d{2,})/.test(ua)) ? 'win11' : 'win10';
+    } else if (/Windows NT 6\.[2-3]/.test(ua)) {
+      plat = 'win8';
+    } else if (/Windows NT 6\.[0-1]/.test(ua)) {
+      plat = 'win8';
+    }
+    var labels = { win8: 'Windows 8 / 8.1', win10: 'Windows 10', win11: 'Windows 11' };
+    document.getElementById('detectedOs').textContent = labels[plat] || 'Windows';
+    document.getElementById('btnDownload').href = '/downloads/suixinyiyue-v1.exe';
+  })();
+
+  /* ── Init ── */
+  resize();
+  rafId = requestAnimationFrame(function firstFrame() { draw(); rafId = null; });
+})();
+</script>
+</body>
+</html>

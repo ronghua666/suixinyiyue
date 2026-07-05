@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>随心一阅</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/app_icon.png">
+<style>
+:root {
+  --page-bg: #F0F4FA;
+  --card-bg: #FFFFFF;
+  --border: #E0E7F2;
+  --text-1: #334155;
+  --text-2: #64748B;
+  --text-3: #94A3B8;
+  --blue-1: #2563EB;
+  --blue-2: #3B82F6;
+  --blue-3: #60A5FA;
+  --blue-4: #93C5FD;
+  --blue-5: #DBEAFE;
+  --blue-6: #EFF6FF;
+  --danger: #E05555; --sub: #94A3B8;
+  --success: #4CAF83;
+  --warn: #E8A840;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font: 14px/1.5 -apple-system, "Microsoft YaHei", "PingFang SC", sans-serif; background: var(--page-bg); color: var(--text-1); }
+.app { display: flex; min-height: 100vh; }
+
+/* ── Sidebar ── */
+.sidebar { width: 200px; background: var(--card-bg); border-right: 1px solid var(--border); padding: 24px 0; flex-shrink: 0; }
+.sidebar .logo { display:flex; align-items:center; gap:8px; font-size: 17px; font-weight: 700; padding: 0 18px 20px; color: var(--text-1); }
+.app-logo-sm { width:30px; height:30px; border-radius:8px; object-fit:cover; flex-shrink:0; }
+.app-logo-lg { width:72px; height:72px; border-radius:18px; object-fit:cover; display:block; margin:0 auto 12px; box-shadow:0 8px 24px rgba(37,99,235,.18); }
+.sidebar nav { display: flex; flex-direction: column; padding: 0 10px; }
+.sidebar nav a { display: flex; align-items: center; padding: 9px 12px; color: var(--text-2); text-decoration: none; border-radius: var(--radius); font-size: 13px; cursor: pointer; }
+.sidebar nav a:hover { color: var(--blue-2); background: var(--blue-6); }
+.sidebar nav a.active { color: #fff; background: var(--blue-2); font-weight: 600; }
+.sidebar .user-info { padding: 14px 14px 0; margin: 14px 10px 0; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-3); }
+.sidebar .user-info strong { display: block; color: var(--text-2); font-size: 13px; }
+
+/* ── Main ── */
+.main { flex: 1; padding: 28px 32px; overflow-y: auto; }
+.page { display: none; }
+.page.active { display: block; }
+.page h2 { font-size: 20px; font-weight: 700; margin-bottom: 18px; color: var(--text-1); }
+
+/* ── Cards ── */
+.card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px 24px; margin-bottom: 16px; border: 1px solid var(--border); }
+.card h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-1); }
+
+/* ── Stats ── */
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+.stat-card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 20px; border: 1px solid var(--border); }
+.stat-card .label { font-size: 12px; color: var(--text-3); }
+.stat-card .value { font-size: 26px; font-weight: 700; margin-top: 4px; color: var(--text-1); }
+
+/* ── Form ── */
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; color: var(--text-2); }
+.form-group input, .form-group textarea, .form-group select { width: 100%; padding: 9px 14px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; outline: none; color: var(--text-1); transition: border-color .15s; }
+.form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: var(--blue-2); }
+.form-group textarea { min-height: 80px; resize: vertical; font-family: inherit; line-height: 1.6; }
+.form-row { display: flex; gap: 12px; }
+.form-row .form-group { flex: 1; }
+
+/* ── Buttons ── */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 20px; border: 1px solid transparent; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; }
+.btn-primary { background: var(--blue-2); color: #fff; }
+.btn-primary:hover { background: var(--blue-3); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover { background: #CC4444; }
+.btn-success { background: var(--success); color: #fff; }
+.btn-success:hover { background: #3D9E72; }
+.btn-outline { background: var(--card-bg); border-color: var(--border); color: var(--text-2); }
+.btn-outline:hover { background: var(--page-bg); }
+.btn-lg { padding: 10px 24px; font-size: 14px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ── Toast ── */
+.toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+.toast { padding: 10px 18px; border-radius: var(--radius); color: #fff; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,.10); }
+.toast.error { background: var(--danger); }
+.toast.success { background: var(--success); }
+.toast.info { background: var(--blue-2); }
+
+/* ── Region ── */
+.region-display { display: flex; gap: 10px; flex-wrap: wrap; }
+.region-tag { background: var(--page-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 14px; font-size: 12px; }
+.region-tag.set { border-color: var(--success); }
+.region-tag .name { font-weight: 600; }
+.region-tag .coord { color: var(--text-3); font-family: monospace; }
+
+/* ── Result ── */
+.result-box { max-height: 400px; overflow-y: auto; background: var(--page-bg); border-radius: var(--radius); padding: 14px; font-size: 13px; white-space: pre-wrap; border: 1px solid var(--border); }
+
+/* ── Login ── */
+.login-page { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--page-bg); }
+.login-card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); padding: 36px 32px; width: 380px; }
+.login-card h1 { text-align: center; margin-bottom: 24px; font-size: 20px; font-weight: 700; color: var(--text-1); }
+
+/* ── Badge ── */
+.badge { display: inline-block; padding: 3px 10px; border-radius: 14px; font-size: 11px; font-weight: 600; }
+.badge-success { background: var(--blue-5); color: #3D9E72; }
+.badge-warn { background: #FEF9E7; color: #C89030; }
+.badge-danger { background: #FEF2F2; color: #CC4444; }
+
+/* ── History ── */
+.history-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.history-table th { background: var(--page-bg); padding: 8px 10px; text-align: left; font-weight: 600; color: var(--text-2); border-bottom: 2px solid var(--border); }
+.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--text-2); }
+.history-table tr:hover td { background: var(--blue-6); }
+.history-table .score-cell { font-weight: 700; font-size: 15px; }
+.history-table .score-high { color: var(--success); }
+.history-table .score-mid { color: var(--warn); }
+.history-table .score-low { color: var(--danger); }
+.feedback-btn { background: none; border: 1px solid var(--border); border-radius: var(--radius); padding: 2px 8px; cursor: pointer; font-size: 13px; color: var(--text-3); }
+.feedback-btn:hover { background: var(--page-bg); }
+.feedback-btn.active-like { background: var(--blue-5); border-color: var(--success); color: #3D9E72; }
+.feedback-btn.active-dislike { background: #FEF2F2; border-color: var(--danger); color: #CC4444; }
+.filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; margin-bottom: 16px; }
+.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.summary-item { background: var(--page-bg); border-radius: var(--radius); padding: 10px 14px; text-align: center; border: 1px solid var(--border); }
+.summary-item .sval { font-size: 20px; font-weight: 700; color: var(--text-1); }
+.summary-item .slbl { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+.detail-modal { position: fixed; inset: 0; background: rgba(0,0,0,.2); z-index: 100; display: flex; align-items: center; justify-content: center; }
+.detail-modal .inner { background: var(--card-bg); border-radius: var(--radius); padding: 24px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 2px 16px rgba(0,0,0,.08); border: 1px solid var(--border); }
+.bar-wrap { background: var(--page-bg); border-radius: var(--radius); height: 24px; overflow: hidden; margin: 4px 0; }
+.bar-fill { height: 100%; background: var(--blue-2); border-radius: var(--radius); transition: width .3s; display: flex; align-items: center; padding-left: 8px; font-size: 11px; color: #fff; }
+
+@media (max-width: 768px) {
+  .app { flex-direction: column; }
+  .sidebar { width: 100%; padding: 12px 0; }
+  .sidebar nav { flex-direction: row; flex-wrap: wrap; padding: 0 8px; }
+  .sidebar .logo { padding: 0 14px 12px; }
+  .sidebar .user-info { display: none; }
+  .main { padding: 16px; }
+  .stats { grid-template-columns: 1fr; }
+  .form-row { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<div id="app" class="app" style="display:flex">
+  <aside class="sidebar">
+    <div class="logo"><img class="app-logo-sm" src="/app_icon.png" alt=""><span>随心一阅</span></div>
+    <nav>
+      <a class="active" data-page="dashboard" onclick="navTo('dashboard')">控制台</a>
+      <a data-page="settings" onclick="navTo('settings')">系统设置</a>
+      <a data-page="regions" onclick="navTo('regions')">区域框选</a>
+      <a data-page="grading" onclick="navTo('grading')">阅卷配置</a>
+      <a data-page="history" onclick="navTo('history')">批改记录</a>
+    </nav>
+  </aside>
+  <div class="main">
+    <!-- Dashboard -->
+    <div id="page-dashboard" class="page active">
+      <h2>控制台</h2>
+      <div class="stats">
+        <div class="stat-card"><div class="label">API 状态</div><div class="value" id="statApiStatus" style="font-size:15px">未配置</div></div>
+        <div class="stat-card"><div class="label">今日批改</div><div class="value" id="statToday">0</div></div>
+        <div class="stat-card"><div class="label">批改状态</div><div class="value" id="statStatus" style="font-size:16px">就绪</div></div>
+      </div>
+      <div class="card">
+        <h3>快捷操作</h3>
+        <p style="color:var(--sub);font-size:12px;margin-bottom:10px">本工具仅在您已登录的阅卷系统内辅助输入分数，不会绕过任何平台的登录验证或访问控制。</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-success btn-lg" onclick="navTo('grading');startSingleGrade()">开始批改</button>
+          <button class="btn btn-primary btn-lg" onclick="navTo('grading');startLoop()">连续批改</button>
+          <button class="btn btn-outline" onclick="navTo('regions')">框选区域</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div id="page-settings" class="page">
+      <h2>系统设置</h2>
+      <input type="hidden" id="cfgModel" value="doubao-seed-2-0-mini-260428">
+      <div class="card">
+        <h3>API 配置</h3>
+        <p style="color:var(--sub);margin-bottom:12px;font-size:12px">填写你的 AI API 密钥，批改将直接调用 AI 服务，不会经过任何中转服务器。</p>
+        <div class="form-group"><label>API Key</label><input type="password" id="cfgApiKey" placeholder="sk-xxxxxxxx"></div>
+        <div class="form-row">
+          <div class="form-group"><label>Base URL</label><input type="text" id="cfgBaseUrl" placeholder="https://ark.cn-beijing.volces.com/api/v3"></div>
+          <div class="form-group"><label>模型</label><input type="text" id="cfgModelInput" placeholder="doubao-seed-2-0-mini-260428"></div>
+        </div>
+        <button class="btn btn-primary" onclick="saveApiConfig()">保存 API 配置</button>
+        <span id="apiConfigStatus" style="margin-left:10px;font-size:12px;color:var(--sub)"></span>
+      </div>
+      <div class="card">
+        <h3>软件更新</h3>
+        <p style="color:var(--sub);font-size:12px;margin-bottom:10px">当前版本：<span id="appVersion">读取中...</span></p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-primary" onclick="checkUpdate(false)">检查更新</button>
+          <button class="btn btn-success" id="btnDownloadUpdate" onclick="downloadUpdate()" style="display:none">下载并安装</button>
+          <span id="updateStatus" style="font-size:12px;color:var(--sub)"></span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>诊断信息</h3>
+        <div class="form-group">
+          <label>问题描述</label>
+          <textarea id="diagDesc" rows="3" placeholder="例如：双击没反应、试改失败、连续批改停在第几份..."></textarea>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-outline" onclick="exportDiagnostics()">导出诊断信息</button>
+          <span id="diagStatus" style="font-size:12px;color:var(--sub)"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Region Selection -->
+    <div id="page-regions" class="page">
+      <h2>区域框选</h2>
+      <p style="color:var(--sub);margin-bottom:16px">点击按钮后，鼠标拖拽框选屏幕上的对应区域。选中的坐标会自动保存。</p>
+      <div class="card">
+        <h3>已框选区域</h3>
+        <div class="region-display" id="regionList">
+          <div class="region-tag"><span class="name">答题识别区</span> <span class="coord" id="rAnswer">未设置</span></div>
+          <div class="region-tag"><span class="name">成绩输入区</span> <span class="coord" id="rScore">未设置</span></div>
+          <div class="region-tag"><span class="name">提交按钮区</span> <span class="coord" id="rSubmit">未设置</span></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-primary" onclick="selectRegion('answer')">框选答题识别区</button>
+        <button class="btn btn-primary" onclick="selectRegion('score')">框选成绩输入区</button>
+        <button class="btn btn-primary" onclick="selectRegion('submit')">框选提交按钮区</button>
+      </div>
+    </div>
+
+    <!-- Grading Config -->
+    <div id="page-grading" class="page">
+      <h2>阅卷配置</h2>
+      <div class="card">
+        <h3>题目分析</h3>
+        <p style="color:var(--sub);margin-bottom:12px;font-size:13px">点击下方按钮，自动截取已框选的答题识别区，分析题目数量和每空描述。</p>
+        <button class="btn btn-primary" id="btnAnalyze" onclick="analyzeQuestions()">分析题目</button>
+        <span id="analyzeStatus" style="margin-left:12px;font-size:13px;color:var(--sub);display:none"></span>
+      </div>
+      <div class="card" id="questionCardsCard" style="display:none">
+        <h3>逐题答案、满分 &amp; 评分细则 <span style="color:var(--danger);font-size:11px">（满分和细则必填）</span></h3>
+        <div id="questionCardsInner"></div>
+        <button class="btn btn-primary" onclick="saveGradingConfig()" style="margin-top:12px">保存阅卷配置</button>
+      </div>
+      <div class="card" id="flatGradingCard">
+        <h3>标准答案 &amp; 评分细则 <span style="color:var(--danger);font-size:11px">（细则必填）</span></h3>
+        <p style="color:var(--warn);margin-bottom:8px;font-size:12px">尚未分析题目，请先点击「分析题目」按钮自动识别空的数量。也可在此手动输入通用答案。</p>
+        <div class="form-group"><label>标准答案</label><textarea id="cfgAnswer" rows="5" placeholder="输入标准答案..."></textarea></div>
+        <div class="form-group"><label>评分细则 <span style="color:var(--danger)">*必填</span></label><textarea id="cfgRubric" rows="4" placeholder="输入评分细则..."></textarea></div>
+        <button class="btn btn-primary" onclick="saveGradingConfig()">保存阅卷配置</button>
+      </div>
+      <div class="card" id="batchInfoCard">
+        <h3>批改设置</h3>
+        <p style="color:var(--sub);margin-bottom:12px;font-size:13px">请先手动登录阅卷系统并打开第一份待批改试卷。</p>
+        <div class="form-row">
+          <div class="form-group"><label>本次批改总份数</label><input type="number" id="totalPapers" value="1" min="1" step="1" style="width:120px"></div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-success btn-lg" id="btnTrial" onclick="trialGrade()">试改（估算）</button>
+          <button class="btn btn-primary btn-lg" id="btnStartLoop" onclick="startBatchGrading()" disabled>开始批改</button>
+          <button class="btn btn-warn btn-lg" id="btnPause" onclick="togglePause()" disabled style="display:none;background:var(--warn);color:#fff">暂停</button>
+          <button class="btn btn-danger btn-lg" id="btnStop" onclick="stopLoop()" disabled>停止</button>
+        </div>
+      </div>
+      <div class="card" id="trialResultCard" style="display:none">
+        <h3>试改结果</h3>
+        <div id="trialResult"></div>
+      </div>
+      <div class="card" id="resultCard" style="display:none">
+        <h3>批改结果</h3>
+        <div id="gradeResult"></div>
+      </div>
+      <div class="card" id="loopStatus" style="display:none">
+        <h3>批改进度</h3>
+        <div id="loopInfo"></div>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div id="page-history" class="page">
+      <h2>批改记录</h2>
+      <div class="filters">
+        <div class="form-group" style="margin:0"><label>日期</label><input type="date" id="histDate" style="width:140px" onchange="loadHistory()"></div>
+        <button class="btn btn-outline" onclick="exportCSV()">导出 CSV</button>
+        <span style="font-size:12px;color:var(--sub);margin-left:8px" id="histCount"></span>
+      </div>
+      <div class="card" id="historySummary" style="display:none"></div>
+      <div class="card" style="overflow-x:auto">
+        <table class="history-table">
+          <thead><tr><th>时间</th><th>总分</th><th>模型</th><th>费用</th><th>反馈</th><th>操作</th></tr></thead>
+          <tbody id="historyBody"><tr><td colspan="6" style="text-align:center;color:var(--sub)">加载中...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div id="detailModal" class="detail-modal" style="display:none" onclick="if(event.target===this)closeDetail()">
+      <div class="inner" id="detailContent"></div>
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align:center;padding:20px;color:var(--sub);font-size:11px;margin-top:16px">
+      <p>随心一阅 是一款阅卷辅助工具，帮助用户在已登录的阅卷系统中输入分数。</p>
+      <p>本软件不会绕过任何平台的登录验证，也不会获取、存储或传输您的阅卷平台账号密码。</p>
+      <p>请确保您的使用行为符合所使用阅卷平台的服务条款。</p>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<script>
+// ─── State ──────────────────────────────────────────────────
+let LOCAL_TOKEN = (function() {
+  let m = document.querySelector('meta[name="local-token"]');
+  return m ? m.content : '';
+})();
+
+// Paths that go to the local server (need X-Local-Token)
+let LOCAL_PREFIXES = ['/api/config', '/api/select-region', '/api/grade', '/api/estimate-cost', '/api/analyze-questions', '/api/update', '/api/diagnostics', '/api/grading'];
+function _isLocalPath(path) {
+  for (let i = 0; i < LOCAL_PREFIXES.length; i++) {
+    if (path.indexOf(LOCAL_PREFIXES[i]) === 0) return true;
+  }
+  return false;
+}
+
+function currentPageName() {
+  let active = document.querySelector('.page.active');
+  return active ? active.id.replace('page-', '') : '';
+}
+
+function reportClientError(path, message, status) {
+  if (path.indexOf('/api/diagnostics') === 0) return;
+  let important = ['/api/grade', '/api/select-region', '/api/analyze-questions', '/api/estimate-cost', '/api/chat', '/api/responses'];
+  let shouldReport = important.some(function(p) { return path.indexOf(p) === 0; });
+  if (!shouldReport) return;
+  let headers = { 'Content-Type': 'application/json' };
+  if (LOCAL_TOKEN) headers['X-Local-Token'] = LOCAL_TOKEN;
+  fetch('/api/diagnostics/report-error', {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify({
+      path: path,
+      message: String(message || '未知错误'),
+      status: status || 0,
+      page: currentPageName()
+    })
+  }).catch(function(){});
+}
+
+function api(path, opts) {
+  opts = opts || {};
+  let headers = opts.headers || {};
+  if (_isLocalPath(path) && LOCAL_TOKEN) headers['X-Local-Token'] = LOCAL_TOKEN;
+  if (opts.body && typeof opts.body === 'object') {
+    headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(opts.body);
+  }
+  return fetch(path, { headers: headers, method: opts.method || 'GET', body: opts.body })
+    .then(function(r) {
+      if (r.status === 403) { throw new Error('本地访问被拒绝，请刷新页面重试'); }
+      return r.json().then(function(d) {
+        if (!r.ok) {
+          let msg = d.detail || d.error || ('HTTP ' + r.status);
+          reportClientError(path, msg, r.status);
+          throw new Error(msg);
+        }
+        return d;
+      });
+    })
+    .catch(function(e) {
+      reportClientError(path, e.message, 0);
+      throw e;
+    });
+}
+
+// ─── Toast ──────────────────────────────────────────────────
+function toast(msg, type) {
+  type = type || 'info';
+  let el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(function() { el.remove(); }, 3000);
+}
+
+// ─── Auth ───────────────────────────────────────────────────
+function showApp() {
+  document.getElementById('app').style.display = 'flex';
+  loadAppInfo();
+  loadConfig();
+  pollLoopStatus();
+  if (!DID_STARTUP_UPDATE_CHECK) {
+    DID_STARTUP_UPDATE_CHECK = true;
+    checkUpdate(true);
+  }
+}
+
+// ─── Update & Diagnostics ───────────────────────────────────
+let LAST_UPDATE = null;
+let DID_STARTUP_UPDATE_CHECK = false;
+
+function loadAppInfo() {
+  api('/api/health').then(function(d) {
+    let el = document.getElementById('appVersion');
+    if (el) el.textContent = (d.app_version || '-') + ' / ' + (d.arch || '-');
+  }).catch(function(){});
+}
+
+function checkUpdate(silent) {
+  let status = document.getElementById('updateStatus');
+  let btn = document.getElementById('btnDownloadUpdate');
+  if (status && !silent) status.textContent = '正在检查...';
+  return api('/api/update/check').then(function(d) {
+    LAST_UPDATE = d;
+    if (btn) btn.style.display = d.has_update ? '' : 'none';
+    if (status) {
+      if (d.has_update) status.textContent = '发现新版本 ' + d.latest_version;
+      else status.textContent = d.error || '当前已是最新版本';
+    }
+    if (d.has_update && silent) {
+      setTimeout(function() {
+        if (confirm('发现新版本 ' + d.latest_version + '，是否现在下载更新？')) {
+          downloadUpdate();
+        }
+      }, 600);
+    } else if (!silent) {
+      toast(d.has_update ? '发现新版本 ' + d.latest_version : '当前已是最新版本', d.has_update ? 'info' : 'success');
+    }
+    return d;
+  }).catch(function(e) {
+    if (status) status.textContent = e.message;
+    if (!silent) toast(e.message, 'error');
+  });
+}
+
+function downloadUpdate() {
+  let status = document.getElementById('updateStatus');
+  if (status) status.textContent = '正在下载更新包...';
+  api('/api/update/download', { method: 'POST', body: { download_url: LAST_UPDATE && LAST_UPDATE.download_url } })
+    .then(function(d) {
+      if (status) status.textContent = '安装包已打开，请按提示安装';
+      toast('安装包已打开，请按提示安装', 'success');
+    })
+    .catch(function(e) {
+      if (status) status.textContent = e.message;
+      toast(e.message, 'error');
+    });
+}
+
+function diagnosticDescription() {
+  let el = document.getElementById('diagDesc');
+  return el ? el.value.trim() : '';
+}
+
+function exportDiagnostics() {
+  let status = document.getElementById('diagStatus');
+  if (status) status.textContent = '正在生成诊断包...';
+  let headers = { 'Content-Type': 'application/json' };
+  if (LOCAL_TOKEN) headers['X-Local-Token'] = LOCAL_TOKEN;
+  fetch('/api/diagnostics/export', {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify({ description: diagnosticDescription() })
+  }).then(function(r) {
+    if (!r.ok) throw new Error('导出失败');
+    return r.blob();
+  }).then(function(blob) {
+    let url = URL.createObjectURL(blob);
+    let a = document.createElement('a');
+    a.href = url;
+    a.download = 'suixin-yiyue-diagnostic.zip';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    if (status) status.textContent = '诊断包已导出';
+  }).catch(function(e) {
+    if (status) status.textContent = e.message;
+    toast(e.message, 'error');
+  });
+}
+
+// ─── Nav ────────────────────────────────────────────────────
+function navTo(page) {
+  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+  let target = document.getElementById('page-' + page);
+  if (target) target.classList.add('active');
+  document.querySelectorAll('.sidebar nav a').forEach(function(a) { a.classList.remove('active'); });
+  let link = document.querySelector('[data-page="' + page + '"]');
+  if (link) link.classList.add('active');
+  if (page === 'regions') refreshRegions();
+  if (page === 'dashboard') refreshDashboard();
+  if (page === 'history') { loadHistory(); }
+}
+
+// ─── Config ─────────────────────────────────────────────────
+function loadConfig() {
+  api('/api/config').then(function(cfg) {
+    let apiCfg = cfg.api || cfg.doubao || {};
+    if (apiCfg.model) {
+      document.getElementById('cfgModel').value = apiCfg.model;
+      if (document.getElementById('cfgModelInput')) document.getElementById('cfgModelInput').value = apiCfg.model;
+    }
+    if (apiCfg.api_key) {
+      document.getElementById('cfgApiKey').value = apiCfg.api_key;
+      document.getElementById('statApiStatus').textContent = '已配置';
+    } else {
+      document.getElementById('statApiStatus').textContent = '未配置';
+    }
+    if (apiCfg.base_url) document.getElementById('cfgBaseUrl').value = apiCfg.base_url;
+    let grading = cfg.grading || {};
+    let qs = grading.questions;
+    if (qs && qs.length > 0) {
+      renderQuestionCards(qs);
+      document.getElementById('flatGradingCard').style.display = 'none';
+    } else {
+      let ansEl = document.getElementById('cfgAnswer');
+      if (ansEl) ansEl.value = grading.standard_answer || '';
+      let rubEl = document.getElementById('cfgRubric');
+      if (rubEl) rubEl.value = grading.grading_rubric || '';
+      document.getElementById('questionCardsCard').style.display = 'none';
+    }
+    refreshRegions();
+  }).catch(function(){});
+}
+
+function analyzeQuestions() {
+  let btn = document.getElementById('btnAnalyze');
+  let status = document.getElementById('analyzeStatus');
+  btn.disabled = true;
+  status.style.display = 'inline';
+  status.textContent = '正在分析题目...';
+  api('/api/analyze-questions', { method: 'POST' })
+    .then(function(d) {
+      let questions = d.questions || [];
+      if (questions.length === 0) {
+        toast('未识别到题目，请确认答题识别区已正确框选', 'error');
+        return;
+      }
+      renderQuestionCards(questions);
+      document.getElementById('flatGradingCard').style.display = 'none';
+      toast('识别到 ' + questions.length + ' 个空，请填写每空满分、标准答案和评分细则', 'success');
+    })
+    .catch(function(e) { toast(e.message, 'error'); })
+    .finally(function() {
+      btn.disabled = false;
+      status.style.display = 'none';
+    });
+}
+
+function renderQuestionCards(questions) {
+  let card = document.getElementById('questionCardsCard');
+  let inner = document.getElementById('questionCardsInner');
+  card.style.display = 'block';
+  let html = '';
+  for (let i = 0; i < questions.length; i++) {
+    let q = questions[i];
+    let num = q.number || ('第' + (i + 1) + '空');
+    let desc = q.description || '';
+    let maxScore = q.max_score || 0;
+    let ans = q.standard_answer || '';
+    let rub = q.grading_rubric || '';
+    html += '<div class="card" style="border:1px solid var(--border);margin-bottom:12px">';
+    html += '<h3 style="margin-bottom:4px">' + htmlescape(num) + '</h3>';
+    if (desc) html += '<p style="color:var(--sub);font-size:12px;margin-bottom:10px">' + htmlescape(desc) + '</p>';
+    html += '<div class="form-row">';
+    html += '<div class="form-group"><label>本空满分 <span style="color:var(--danger)">*</span></label><input type="number" class="qmax" value="' + maxScore + '" min="0" step="0.1" style="width:120px" placeholder="如 2 或 0.5"></div>';
+    html += '</div>';
+    html += '<div class="form-group"><label>标准答案</label><textarea class="qanswer" rows="3" placeholder="输入该空的标准答案...">' + htmlescape(ans) + '</textarea></div>';
+    html += '<div class="form-group"><label>评分细则 <span style="color:var(--danger)">*必填</span></label><textarea class="qrubric" rows="2" placeholder="输入评分细则...">' + htmlescape(rub) + '</textarea></div>';
+    html += '</div>';
+  }
+  inner.innerHTML = html;
+}
+
+function htmlescape(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function collectQuestionCards() {
+  let questions = [];
+  let cards = document.querySelectorAll('#questionCardsInner .card');
+  cards.forEach(function(card, i) {
+    let titleEl = card.querySelector('h3');
+    let descEl = card.querySelector('p');
+    let maxEl = card.querySelector('.qmax');
+    let ansEl = card.querySelector('.qanswer');
+    let rubEl = card.querySelector('.qrubric');
+    let number = titleEl ? titleEl.textContent : ('第' + (i + 1) + '空');
+    let description = descEl ? descEl.textContent : '';
+    let max_score = parseFloat(maxEl.value) || 0;
+    let standard_answer = ansEl ? ansEl.value : '';
+    let grading_rubric = rubEl ? rubEl.value : '';
+    questions.push({
+      number: number,
+      description: description,
+      max_score: max_score,
+      standard_answer: standard_answer,
+      grading_rubric: grading_rubric
+    });
+  });
+  return questions;
+}
+
+function buildGradingConfigBody() {
+  let questionsCard = document.getElementById('questionCardsCard');
+  let hasQuestions = questionsCard && questionsCard.style.display !== 'none';
+  if (hasQuestions) {
+    let qs = collectQuestionCards();
+    for (let i = 0; i < qs.length; i++) {
+      if (!qs[i].max_score || qs[i].max_score <= 0) {
+        toast(qs[i].number + ' 的满分必须大于 0', 'error');
+        return null;
+      }
+      if (!qs[i].grading_rubric.trim()) {
+        toast(qs[i].number + ' 的评分细则必填', 'error');
+        return null;
+      }
+    }
+    return {
+      standard_answer: '',
+      grading_rubric: '',
+      questions: qs
+    };
+  }
+
+  let rubric = document.getElementById('cfgRubric').value;
+  if (!rubric.trim()) {
+    toast('评分细则必填', 'error');
+    return null;
+  }
+  return {
+    standard_answer: document.getElementById('cfgAnswer').value,
+    grading_rubric: rubric,
+    questions: []
+  };
+}
+
+function saveGradingConfig(silent) {
+  let body = buildGradingConfigBody();
+  if (!body) return Promise.reject(new Error('阅卷配置未填写完整'));
+  return api('/api/config/grading', { method: 'POST', body: body })
+    .then(function() { if (!silent) toast('阅卷配置已保存', 'success'); return body; })
+    .catch(function(e) { toast(e.message, 'error'); });
+}
+
+// ─── Regions ────────────────────────────────────────────────
+function selectRegion(type) {
+  api('/api/select-region', { method: 'POST', body: { type: type } })
+    .then(function(d) {
+      if (d.success) { toast('区域已框选', 'success'); refreshRegions(); }
+      else { toast(d.error || '取消选择', 'info'); }
+    })
+    .catch(function(e) { toast(e.message, 'error'); });
+}
+
+function refreshRegions() {
+  api('/api/config').then(function(cfg) {
+    let c = cfg.coords || {};
+    ['answer', 'score', 'submit'].forEach(function(t) {
+      let r = c[t + '_region'];
+      let el = document.getElementById('r' + (t === 'answer' ? 'Answer' : t === 'score' ? 'Score' : 'Submit'));
+      let tag = el.parentElement;
+      if (r) { el.textContent = r.x + ',' + r.y + ' ' + r.w + 'x' + r.h; tag.classList.add('set'); }
+      else { el.textContent = '未设置'; tag.classList.remove('set'); }
+    });
+  }).catch(function(){});
+}
+
+// ─── API Config ─────────────────────────────────────────────
+function saveApiConfig() {
+  let apiKey = document.getElementById('cfgApiKey').value.trim();
+  let baseUrl = document.getElementById('cfgBaseUrl').value.trim();
+  let model = document.getElementById('cfgModelInput').value.trim();
+  if (!apiKey) return toast('请输入 API Key', 'error');
+  let body = { api: { api_key: apiKey, base_url: baseUrl, model: model } };
+  api('/api/config', { method: 'POST', body: body })
+    .then(function() {
+      toast('API 配置已保存', 'success');
+      document.getElementById('apiConfigStatus').textContent = '已保存';
+      document.getElementById('statApiStatus').textContent = '已配置';
+    })
+    .catch(function(e) { toast(e.message, 'error'); });
+}
+
+function estimateCost() {
+  saveGradingConfig(true).then(function(saved) {
+    if (!saved) return;
+    let body = { model: document.getElementById('cfgModel').value };
+    if (saved.questions && saved.questions.length) {
+      body.standard_answer = saved.questions.map(function(q) {
+        return '【' + q.number + '】本空满分' + q.max_score + '分\n标准答案：' + q.standard_answer + '\n评分细则：' + q.grading_rubric;
+      }).join('\n\n');
+      body.grading_rubric = '';
+    } else {
+      body.standard_answer = saved.standard_answer;
+      body.grading_rubric = saved.grading_rubric;
+    }
+    api('/api/estimate-cost', { method: 'POST', body: body }).then(function(d) {
+      if (d.blank) { toast('检测到空白试卷', 'info'); return; }
+      toast('预估费用: ¥' + (d.cost_yuan || 0).toFixed(4) + ' (' + (d.usage.input_tokens || 0) + ' input + ' + (d.usage.output_tokens || 0) + ' output tokens)', 'info');
+    }).catch(function(e) { toast(e.message, 'error'); });
+  });
+}
+
+let _trialResult = null;  // cached trial result for estimates
+
+function trialGrade() {
+  let totalPapers = parseInt(document.getElementById('totalPapers').value) || 1;
+  if (totalPapers < 1) return toast('请输入有效的批改份数', 'error');
+
+  let btn = document.getElementById('btnTrial');
+  btn.disabled = true;
+  btn.textContent = '试改中...';
+  document.getElementById('trialResultCard').style.display = 'block';
+  document.getElementById('trialResult').innerHTML = '<p>正在进行试改，这需要几秒钟...</p>';
+
+  saveGradingConfig(true).then(function(saved) {
+    if (!saved) {
+      btn.disabled = false;
+      btn.textContent = '试改（估算）';
+      document.getElementById('btnStartLoop').disabled = true;
+      return;
+    }
+    api('/api/grade/trial', { method: 'POST' })
+    .then(function(d) {
+      let html = '';
+      if (d.success) {
+        let elapsed = d.elapsed_seconds || 0;
+        let estTotalSec = Math.round(elapsed * totalPapers);
+        let estMin = Math.floor(estTotalSec / 60);
+        let estSec = estTotalSec % 60;
+        html += '<p style="font-size:20px;font-weight:700;color:var(--success)">试改得分: ' + d.total_score + ' / ' + d.max_total + '</p>';
+        if (d.reason) html += '<div class="result-box" style="max-height:150px">' + htmlescape(d.reason) + '</div>';
+        html += '<div style="margin-top:12px;background:var(--blue-6);border-radius:var(--radius);padding:14px 18px">';
+        html += '<p style="font-weight:700;margin-bottom:6px">估算信息</p>';
+        html += '<p>单次耗时: <strong>' + elapsed + ' 秒</strong></p>';
+        html += '<p>总计 <strong>' + totalPapers + '</strong> 份，预计总耗时: <strong>' + estMin + ' 分 ' + estSec + ' 秒</strong></p>';
+        if (d.usage && d.usage.input_tokens) {
+          html += '<p style="font-size:12px;color:var(--text-3);margin-top:4px">Token 用量: ' + d.usage.input_tokens + ' input + ' + (d.usage.output_tokens || 0) + ' output</p>';
+        }
+        html += '<p style="font-size:11px;color:var(--text-3);margin-top:2px">以上为估算值，实际时间和费用以最终结果为准</p>';
+        html += '</div>';
+        html += '<div style="margin-top:12px"><span style="font-size:12px;color:var(--sub)">评分准确吗？</span> ';
+        html += '<button class="feedback-btn" onclick="submitFeedbackOnCurrent(\'like\')">👍 准确</button> ';
+        html += '<button class="feedback-btn" onclick="submitFeedbackOnCurrent(\'dislike\')">👎 不准</button></div>';
+        _trialResult = d;
+        document.getElementById('btnStartLoop').disabled = false;
+        saveGradingResult(d);
+      } else {
+        html += '<p style="color:var(--danger);font-weight:600">试改失败</p>';
+        if (d.error) html += '<p style="color:var(--danger)">' + htmlescape(d.error) + '</p>';
+        document.getElementById('btnStartLoop').disabled = true;
+        _trialResult = null;
+      }
+      document.getElementById('trialResult').innerHTML = html;
+      btn.disabled = false;
+      btn.textContent = '试改（估算）';
+    })
+    .catch(function(e) {
+      document.getElementById('trialResult').innerHTML = '<p style="color:var(--danger)">错误: ' + htmlescape(e.message) + '</p>';
+      btn.disabled = false;
+      btn.textContent = '试改（估算）';
+      document.getElementById('btnStartLoop').disabled = true;
+    });
+  });
+}
+
+let _lastSavedResultId = null;
+function submitFeedbackOnCurrent(type) {
+  if (!_lastSavedResultId) {
+    // Try to get the most recent result
+    api('/api/grading/results?limit=1').then(function(r) {
+      if (r.results && r.results.length > 0) {
+        _lastSavedResultId = r.results[0].id;
+        submitFeedback(_lastSavedResultId, type);
+      }
+    }).catch(function(){});
+  } else {
+    submitFeedback(_lastSavedResultId, type);
+  }
+}
+
+function startBatchGrading() {
+  let totalPapers = parseInt(document.getElementById('totalPapers').value) || 1;
+  if (totalPapers < 1) return toast('请输入有效的批改份数', 'error');
+
+  saveGradingConfig(true).then(function(saved) {
+    if (!saved) return;
+
+    _lastBatchId = 'L' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.random().toString(36).slice(2,8).toUpperCase();
+    _loopResults = [];
+    document.getElementById('btnTrial').disabled = true;
+    document.getElementById('btnStartLoop').disabled = true;
+    document.getElementById('btnPause').style.display = '';
+    document.getElementById('btnPause').disabled = false;
+    document.getElementById('btnPause').textContent = '暂停';
+    document.getElementById('btnStop').disabled = false;
+    document.getElementById('loopStatus').style.display = 'block';
+    document.getElementById('loopInfo').innerHTML = '<p>正在启动批改，共 ' + totalPapers + ' 份...</p>';
+    document.getElementById('historySummary').style.display = 'none';
+    api('/api/grade/start-loop', { method: 'POST', body: { total_papers: totalPapers } })
+      .then(function(d) {
+        document.getElementById('loopInfo').innerHTML = '<p>批改已启动，共 <strong>' + totalPapers + '</strong> 份</p>';
+        pollLoopStatus();
+      })
+      .catch(function(e) {
+        toast(e.message, 'error');
+        document.getElementById('btnTrial').disabled = false;
+        document.getElementById('btnStartLoop').disabled = false;
+        document.getElementById('btnPause').style.display = 'none';
+        document.getElementById('btnPause').disabled = true;
+        document.getElementById('btnStop').disabled = true;
+      });
+  });
+}
+
+function stopLoop() {
+  api('/api/grade/stop', { method: 'POST' })
+    .then(function() {
+      toast('正在停止...', 'info');
+      document.getElementById('btnStartLoop').disabled = false;
+      document.getElementById('btnTrial').disabled = false;
+      document.getElementById('btnPause').style.display = 'none';
+      document.getElementById('btnPause').disabled = true;
+      document.getElementById('btnStop').disabled = true;
+      document.getElementById('statStatus').textContent = '就绪';
+    })
+    .catch(function(e) { toast(e.message, 'error'); });
+}
+
+function togglePause() {
+  api('/api/grade/pause', { method: 'POST' })
+    .then(function(d) {
+      let btn = document.getElementById('btnPause');
+      if (d.paused) {
+        btn.textContent = '继续';
+        btn.style.background = 'var(--success)';
+        document.getElementById('statStatus').textContent = '已暂停';
+      } else {
+        btn.textContent = '暂停';
+        btn.style.background = 'var(--warn)';
+      }
+    })
+    .catch(function(e) { toast(e.message, 'error'); });
+}
+
+let _loopResults = [];
+let _lastLoopCurrent = 0;
+
+function pollLoopStatus() {
+  api('/api/grade/status').then(function(d) {
+    let total = d.total || 0;
+    let paused = d.paused || false;
+    if (d.status === 'running') {
+      let statusText = '批改中 (' + d.current + (total > 0 ? '/' + total : '') + ')';
+      if (paused) statusText = '已暂停 (' + d.current + (total > 0 ? '/' + total : '') + ')';
+      document.getElementById('statStatus').textContent = statusText;
+      document.getElementById('btnStartLoop').disabled = true;
+      document.getElementById('btnTrial').disabled = true;
+      document.getElementById('btnPause').style.display = '';
+      document.getElementById('btnPause').disabled = false;
+      if (paused) {
+        document.getElementById('btnPause').textContent = '继续';
+        document.getElementById('btnPause').style.background = 'var(--success)';
+      } else {
+        document.getElementById('btnPause').textContent = '暂停';
+        document.getElementById('btnPause').style.background = 'var(--warn)';
+      }
+      document.getElementById('btnStop').disabled = false;
+      document.getElementById('loopStatus').style.display = 'block';
+      let info = '<p>进度: 已批改 <strong>' + d.current + '</strong>' + (total > 0 ? ' / ' + total : '') + ' 份</p>';
+      if (paused) info += '<p style="color:var(--warn)">⏸ 已暂停，点击「继续」恢复批改</p>';
+      if (d.error) info += '<p style="color:var(--danger)">' + htmlescape(d.error) + '</p>';
+      document.getElementById('loopInfo').innerHTML = info;
+      if (d.current > _lastLoopCurrent && d.last_result) {
+        saveGradingResult(d.last_result);
+      }
+      _lastLoopCurrent = d.current;
+    } else if (d.status === 'idle' || d.status === 'stopping') {
+      if (_lastLoopCurrent > 0) {
+        document.getElementById('loopInfo').innerHTML = '<p style="color:var(--success)">批改完成，共 ' + _lastLoopCurrent + ' 份</p>';
+        showLoopSummary(_lastBatchId);
+        _lastLoopCurrent = 0;
+        document.getElementById('statStatus').textContent = '就绪';
+      }
+      document.getElementById('btnTrial').disabled = false;
+      document.getElementById('btnStartLoop').disabled = false;
+      document.getElementById('btnPause').style.display = 'none';
+      document.getElementById('btnPause').disabled = true;
+      document.getElementById('btnStop').disabled = true;
+    } else if (d.status === 'error') {
+      document.getElementById('btnTrial').disabled = false;
+      document.getElementById('btnStartLoop').disabled = false;
+      document.getElementById('btnPause').style.display = 'none';
+      document.getElementById('btnPause').disabled = true;
+      document.getElementById('btnStop').disabled = true;
+      document.getElementById('loopInfo').innerHTML = '<p style="color:var(--danger)">错误: ' + htmlescape(d.error || '未知') + '</p>';
+      if (_lastLoopCurrent > 0) showLoopSummary(_lastBatchId);
+      _lastLoopCurrent = 0;
+    }
+  }).catch(function(){});
+}
+
+let _lastBatchId = null;  // track current loop batch
+
+function refreshDashboard() {
+  loadConfig();
+  pollLoopStatus();
+}
+
+// ─── Grading History ──────────────────────────────────────────
+
+function saveGradingResult(data) {
+  let body = {
+    total_score: data.total_score, max_total: data.max_total,
+    questions: data.questions || [], summary: data.reason || data.summary || '',
+    usage: data.usage || {}, cost: data.cost_yuan || 0,
+    model: document.getElementById('cfgModel').value || '',
+    is_loop: data.is_loop ? 1 : 0, batch_id: _lastBatchId || '',
+  };
+  return api('/api/grading/results', { method: 'POST', body: body }).then(function(r) {
+    if (r.id) _lastSavedResultId = r.id;
+  }).catch(function(){});
+}
+
+function loadHistory() {
+  let params = '?limit=100';
+  let d = document.getElementById('histDate').value;
+  if (d) params += '&date_from=' + d;
+  api('/api/grading/results' + params).then(function(r) {
+    let rows = r.results || [];
+    document.getElementById('histCount').textContent = '共 ' + (r.total || rows.length) + ' 条';
+    let html = '';
+    if (rows.length === 0) {
+      html = '<tr><td colspan="6" style="text-align:center;color:var(--sub)">暂无批改记录</td></tr>';
+    } else {
+      rows.forEach(function(item) {
+        let s = item.total_score, m = item.max_total;
+        let cls = m ? (s / m >= 0.8 ? 'score-high' : s / m >= 0.6 ? 'score-mid' : 'score-low') : '';
+        let fb = item.feedback;
+        html += '<tr>';
+        html += '<td>' + htmlescape((item.created_at || '').slice(5,16)) + '</td>';
+        html += '<td class="score-cell ' + cls + '">' + (s != null ? s : '-') + (m ? ' / ' + m : '') + '</td>';
+        html += '<td style="font-size:12px">' + htmlescape(item.model || '-') + '</td>';
+        html += '<td>' + (item.cost != null ? '¥' + item.cost.toFixed(4) : '-') + '</td>';
+        html += '<td>';
+        html += '<button class="feedback-btn' + (fb === 'like' ? ' active-like' : '') + '" onclick="submitFeedback(' + item.id + ',\'like\')" title="评分准确">👍</button> ';
+        html += '<button class="feedback-btn' + (fb === 'dislike' ? ' active-dislike' : '') + '" onclick="submitFeedback(' + item.id + ',\'dislike\')" title="评分不准">👎</button>';
+        html += '</td>';
+        html += '<td><button class="btn btn-outline" style="padding:4px 10px;font-size:11px" onclick="viewResultDetail(' + item.id + ')">详情</button></td>';
+        html += '</tr>';
+      });
+    }
+    document.getElementById('historyBody').innerHTML = html;
+  }).catch(function(e) { document.getElementById('historyBody').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--danger)">加载失败: ' + htmlescape(e.message) + '</td></tr>'; });
+}
+
+function viewResultDetail(id) {
+  api('/api/grading/results/' + id).then(function(r) {
+    let d = r.result;
+    let questionsHtml = '';
+    (d.questions || []).forEach(function(q) {
+      questionsHtml += '<div style="margin:6px 0;padding:8px;background:var(--bg);border-radius:4px">';
+      questionsHtml += '<strong>' + htmlescape(q.number || '?') + '</strong>: ' + htmlescape(q.score || '-') + ' / ' + htmlescape(q.max_score || '-');
+      if (q.reason) questionsHtml += '<div style="font-size:12px;color:var(--sub);margin-top:2px">' + htmlescape(q.reason) + '</div>';
+      questionsHtml += '</div>';
+    });
+    let html = '<h3>批改详情</h3>';
+    html += '<p style="color:var(--sub)">' + htmlescape(d.created_at || '') + ' | 模型: ' + htmlescape(d.model || '-') + ' | 费用: ¥' + htmlescape((d.cost || 0).toFixed(4)) + '</p>';
+    html += '<p style="font-size:24px;font-weight:700;color:var(--success)">总分: ' + htmlescape(d.total_score != null ? d.total_score : '-') + ' / ' + htmlescape(d.max_total || '-') + '</p>';
+    if (d.summary) html += '<div class="result-box" style="max-height:200px;margin-bottom:12px">' + htmlescape(d.summary) + '</div>';
+    html += '<h4>各题得分</h4>' + (questionsHtml || '<p style="color:var(--sub)">无题目详情</p>');
+    html += '<div style="margin-top:12px"><button class="btn btn-outline" onclick="closeDetail()">关闭</button></div>';
+    document.getElementById('detailContent').innerHTML = html;
+    document.getElementById('detailModal').style.display = 'flex';
+  }).catch(function(e) { toast(e.message, 'error'); });
+}
+
+function closeDetail() { document.getElementById('detailModal').style.display = 'none'; }
+
+function submitFeedback(id, type) {
+  api('/api/grading/results/' + id + '/feedback', { method: 'POST', body: { feedback: type } })
+    .then(function() { toast('反馈已提交', 'success'); loadHistory(); })
+    .catch(function(e) { toast(e.message, 'error'); });
+}
+
+function exportCSV() {
+  let params = '';
+  let d = document.getElementById('histDate').value;
+  if (d) params += '?date_from=' + d;
+  window.open('/api/grading/results/export' + params, '_blank');
+}
+
+function showLoopSummary(batchId) {
+  api('/api/grading/results/summary?batch_id=' + (batchId || '')).then(function(s) {
+    if (!s.has_data) return;
+    let html = '<h4>本轮批改汇总</h4><div class="summary-grid">';
+    html += '<div class="summary-item"><div class="sval">' + s.avg_score + '</div><div class="slbl">平均分</div></div>';
+    html += '<div class="summary-item"><div class="sval">' + s.avg_rate + '%</div><div class="slbl">平均得分率</div></div>';
+    html += '<div class="summary-item"><div class="sval">' + s.count + '</div><div class="slbl">批改份数</div></div>';
+    html += '<div class="summary-item"><div class="sval">¥' + s.total_cost.toFixed(2) + '</div><div class="slbl">总费用</div></div>';
+    html += '</div>';
+    html += '<h4>分数分布</h4>';
+    let dist = s.score_distribution || {};
+    let maxCount = Math.max.apply(null, Object.values(dist)) || 1;
+    Object.keys(dist).forEach(function(k) {
+      let v = dist[k] || 0;
+      let pct = maxCount > 0 ? Math.round(v / maxCount * 100) : 0;
+      html += '<div style="display:flex;align-items:center;gap:8px;margin:4px 0"><span style="width:50px;font-size:12px">' + k + '</span><div class="bar-wrap" style="flex:1"><div class="bar-fill" style="width:' + pct + '%">' + (v > 0 ? v : '') + '</div></div></div>';
+    });
+    let qs = s.question_stats || {};
+    if (Object.keys(qs).length > 0) {
+      html += '<h4 style="margin-top:12px">各题平均得分率</h4>';
+      Object.keys(qs).sort().forEach(function(k) {
+        let v = qs[k];
+        html += '<div style="display:flex;align-items:center;gap:8px;margin:4px 0"><span style="width:50px;font-size:12px">' + k + '</span><div class="bar-wrap" style="flex:1"><div class="bar-fill" style="width:' + v.avg_rate + '%">' + v.avg_rate + '%</div></div></div>';
+      });
+    }
+    html += '<p style="font-size:11px;color:var(--sub);margin-top:8px">👍 ' + (s.likes || 0) + ' 好评 | 👎 ' + (s.dislikes || 0) + ' 差评</p>';
+    document.getElementById('historySummary').innerHTML = html;
+    document.getElementById('historySummary').style.display = 'block';
+  }).catch(function(){});
+}
+
+// ─── Init ───────────────────────────────────────────────────
+window.addEventListener('beforeunload', function() {
+  navigator.sendBeacon('/api/shutdown');
+});
+
+showApp();
+
+setInterval(function() {
+  pollLoopStatus();
+}, 15000);  // refresh every 15s
+</script>
+</body>
+</html>
