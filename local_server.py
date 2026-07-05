@@ -339,7 +339,7 @@ def shutdown():
     return {"status": "shutting_down"}
 
 
-GITHUB_RELEASES_URL = "https://api.github.com/repos/PLACEHOLDER_USER/PLACEHOLDER_REPO/releases/latest"
+GITHUB_RELEASES_URL = "https://api.github.com/repos/ronghua666/suixinyiyue/releases/latest"
 
 def _fetch_update_manifest() -> dict:
     """Check GitHub Releases for updates (placeholder)."""

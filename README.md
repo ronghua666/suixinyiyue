@@ -13,7 +13,7 @@
 
 ## 下载
 
-前往 [官方网站](https://suixinyiyue.xyz) 下载最新版本。
+前往 [官方网站](https://suixinyiyue.xyz) 或 [GitHub Releases](https://github.com/ronghua666/suixinyiyue/releases) 下载最新版本。
 
 支持 Windows 8 / 10 / 11 · x86
 
