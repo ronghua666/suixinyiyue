@@ -342,16 +342,49 @@ def shutdown():
 GITHUB_RELEASES_URL = "https://api.github.com/repos/ronghua666/suixinyiyue/releases/latest"
 
 def _fetch_update_manifest() -> dict:
-    """Check GitHub Releases for updates (placeholder)."""
-    return {
-        "latest_version": APP_VERSION,
-        "has_update": False,
-        "notes": ["Update check via GitHub Releases coming soon."],
-        "download_url": "",
-        "sha256": "",
-        "current_version": APP_VERSION,
-        "arch": _windows_arch(),
-    }
+    """Check GitHub Releases for latest version."""
+    arch = _windows_arch()
+    try:
+        resp = httpx.get(GITHUB_RELEASES_URL, timeout=10.0, follow_redirects=True)
+        resp.raise_for_status()
+        release = resp.json()
+        tag = release.get("tag_name", "").lstrip("v")
+        notes = []
+        body = release.get("body", "")
+        if body:
+            notes = [line.strip() for line in body.split("\n") if line.strip()][:10]
+        download_url = ""
+        sha256 = ""
+        for asset in release.get("assets", []):
+            name = asset.get("name", "")
+            if name.endswith(".exe") and arch in name.lower():
+                download_url = asset.get("browser_download_url", "")
+                break
+        if not download_url:
+            for asset in release.get("assets", []):
+                if asset.get("name", "").endswith(".exe"):
+                    download_url = asset.get("browser_download_url", "")
+                    break
+        return {
+            "latest_version": tag or APP_VERSION,
+            "has_update": False,
+            "notes": notes,
+            "download_url": download_url,
+            "sha256": sha256 or "",
+            "current_version": APP_VERSION,
+            "arch": arch,
+        }
+    except Exception as exc:
+        _record_error("fetch_update", exc)
+        return {
+            "latest_version": APP_VERSION,
+            "has_update": False,
+            "notes": [],
+            "download_url": "",
+            "sha256": "",
+            "current_version": APP_VERSION,
+            "arch": arch,
+        }
 
 
 @app.get("/api/update/check")
