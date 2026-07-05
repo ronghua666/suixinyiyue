@@ -678,8 +678,8 @@ function refreshRegions() {
 // ─── API Config ─────────────────────────────────────────────
 function saveApiConfig() {
   let apiKey = document.getElementById('cfgApiKey').value.trim();
-  let baseUrl = document.getElementById('cfgBaseUrl').value.trim();
-  let model = document.getElementById('cfgModelInput').value.trim();
+  let baseUrl = document.getElementById('cfgBaseUrl').value.trim() || 'https://ark.cn-beijing.volces.com/api/v3';
+  let model = document.getElementById('cfgModelInput').value.trim() || 'doubao-seed-2-0-mini-260428';
   if (!apiKey) return toast('请输入 API Key', 'error');
   let body = { api: { api_key: apiKey, base_url: baseUrl, model: model } };
   api('/api/config', { method: 'POST', body: body })

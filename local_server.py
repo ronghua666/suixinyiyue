@@ -249,11 +249,11 @@ def _get_local_api_creds() -> dict:
     except (json.JSONDecodeError, OSError):
         raise HTTPException(400, "配置文件读取失败")
     api_cfg = cfg.get("api") or cfg.get("doubao") or {}
-    api_key = api_cfg.get("api_key", "")
+    api_key = api_cfg.get("api_key", "").strip()
     if not api_key:
         raise HTTPException(400, "请先在设置中配置 API Key")
-    base_url = api_cfg.get("base_url", "https://ark.cn-beijing.volces.com/api/v3")
-    model = api_cfg.get("model", "doubao-seed-2-0-mini-260428")
+    base_url = api_cfg.get("base_url", "").strip() or "https://ark.cn-beijing.volces.com/api/v3"
+    model = api_cfg.get("model", "").strip() or "doubao-seed-2-0-mini-260428"
     return {"api_key": api_key, "base_url": base_url, "model": model}
 
 
@@ -261,6 +261,9 @@ def _get_local_api_creds() -> dict:
 @app.middleware("http")
 async def local_token_middleware(request: Request, call_next):
     path = request.url.path
+
+    # Cancel any pending shutdown — tab is still alive
+    _cancel_shutdown()
 
     # Only check /api/* routes
     if not path.startswith("/api/"):
@@ -329,13 +332,40 @@ def health():
     }
 
 
+_shutdown_lock = threading.Lock()
+_shutdown_scheduled: float = 0.0
+_shutdown_monitor_started: bool = False
+
+
+def _monitor_shutdown():
+    """Background thread: checks if the shutdown grace period has expired."""
+    global _shutdown_scheduled
+    while True:
+        time.sleep(1.0)
+        with _shutdown_lock:
+            if _shutdown_scheduled > 0 and time.time() >= _shutdown_scheduled:
+                os._exit(0)
+
+
+def _cancel_shutdown():
+    """Reset any pending shutdown (called on incoming requests)."""
+    global _shutdown_scheduled
+    with _shutdown_lock:
+        _shutdown_scheduled = 0.0
+
+
 @app.post("/api/shutdown")
 def shutdown():
-    """Shut down the local server gracefully."""
-    def _do_shutdown():
-        time.sleep(0.3)
-        os._exit(0)
-    threading.Thread(target=_do_shutdown, daemon=True).start()
+    """Shut down the local server gracefully after a 5-second grace period.
+    Any request during the grace period resets the timer, so only
+    the last tab closing triggers an actual shutdown.
+    """
+    global _shutdown_monitor_started
+    with _shutdown_lock:
+        _shutdown_scheduled = time.time() + 5.0
+        if not _shutdown_monitor_started:
+            _shutdown_monitor_started = True
+            threading.Thread(target=_monitor_shutdown, daemon=True).start()
     return {"status": "shutting_down"}
 
 
